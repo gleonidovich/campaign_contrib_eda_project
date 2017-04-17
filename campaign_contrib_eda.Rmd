@@ -35,3 +35,13 @@ if (!require(corrplot)) install.packages('corrplot')
 library(corrplot)
 ```
 
+```{r load_data}
+# Load the data set
+df <- read.csv("virginia_contributions.csv", header = TRUE, sep = ",")
+
+# Remove empty column
+df <- subset(df, select = -X)
+```
+
+
+
