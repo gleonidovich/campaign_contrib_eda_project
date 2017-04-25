@@ -43,5 +43,63 @@ df <- read.csv("virginia_contributions.csv", header = TRUE, sep = ",")
 df <- subset(df, select = -X)
 ```
 
+Presidential Map Contributor Dataset from the Federal Election Commission is a dataset of all individual campaign contributions, refunds to individuals, and transfers from authorized committees. This report will explore a subset of this dataset for contributions from Virginia during the 2016 election cycle. 
+
+##Univariate Analysis
+
+```{r data_dim}
+dim(df)
+```
+
+```{r data_str}
+str(df)
+```
+
+This dataset had 18 features and 212849 observations. Most of the features are factor type. 
+
+There are 25 different candidate and committee ids. While the candidate names are already listed, it would also be nice to know the committee names.
+
+Some of the features have to be adjusted before analysis. The contb_receipt_dt feature needs to be a date type. The contbr_zip is an int type but it would make more sense as a factor type.
+Some features can be removed because they would not contribute to the analysis. cand_id, file_num, and contbr_st do not add any extra information from an analysis perspective.
+It is interesting that while tran_id is a unique id it has less levels than the number of observations.
+
+```{r adjust_features}
+# Remove unneeded features
+df <- subset(df, select = -c(cand_id, file_num, contbr_st))
+
+# Convert features to correct data type
+df$contbr_zip <- factor(df$contbr_zip)
+df$contb_receipt_dt <- as.Date(df$contb_receipt_dt, "%d-%b-%y")
+```
+
+```{r data_summary}
+summary(df)
+```
+
+We can see that the contribution receipt dates range 3 years from 2013-12-31 to 2016-12-31. It looks like the committees are matched with the candidate. Also, Hillary Clinton got more than 50% of all the contributions in the dataset. Did she also get more than 50% of the aggregate contribution amount? Most contributions do not name an employer, and a 1/4th of the contributions are from retired people. The majority of receipts had no description.
+
+I think it would useful to know the political party of the candidates.
+
+```{r committee_names}
+committees <- levels(df$cmte_id)
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
