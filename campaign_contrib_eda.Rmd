@@ -38,9 +38,6 @@ library(corrplot)
 ```{r load_data}
 # Load the data set
 df <- read.csv("virginia_contributions.csv", header = TRUE, sep = ",")
-
-# Remove empty column
-df <- subset(df, select = -X)
 ```
 
 Presidential Map Contributor Dataset from the Federal Election Commission is a dataset of all individual campaign contributions, refunds to individuals, and transfers from authorized committees. This report will explore a subset of this dataset for contributions from Virginia during the 2016 election cycle. 
@@ -57,7 +54,7 @@ str(df)
 
 This dataset had 18 features and 212849 observations. Most of the features are factor type. 
 
-There are 25 different candidate and committee ids. While the candidate names are already listed, it would also be nice to know the committee names.
+There are 25 different candidate and committee ids. 
 
 Some of the features have to be adjusted before analysis. The contb_receipt_dt feature needs to be a date type. The contbr_zip is an int type but it would make more sense as a factor type.
 Some features can be removed because they would not contribute to the analysis. cand_id, file_num, and contbr_st do not add any extra information from an analysis perspective.
@@ -81,8 +78,9 @@ We can see that the contribution receipt dates range 3 years from 2013-12-31 to 
 I think it would useful to know the political party of the candidates.
 
 ```{r committee_names}
-committees <- levels(df$cmte_id)
+committees <- levels(df$cand_id)
 
+committees
 ```
 
 
