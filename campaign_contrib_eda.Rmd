@@ -37,7 +37,7 @@ library(corrplot)
 
 ```{r load_data}
 # Load the data set
-df <- read.csv("virginia_contributions.csv", header = TRUE, sep = ",")
+df <- read.csv("virginia_contributions_mod.csv", header = TRUE, sep = ",")
 ```
 
 Presidential Map Contributor Dataset from the Federal Election Commission is a dataset of all individual campaign contributions, refunds to individuals, and transfers from authorized committees. This report will explore a subset of this dataset for contributions from Virginia during the 2016 election cycle. 
@@ -52,20 +52,27 @@ dim(df)
 str(df)
 ```
 
-This dataset had 18 features and 212849 observations. Most of the features are factor type. 
+This dataset had 20 features and 212849 observations. Most of the features are factor type. 
 
-There are 25 different candidate and committee ids. 
+There are 25 different candidates and committees. Contributions to a candidate go through their committee, so they are essentially the same variable. Each candidate/committee is associated with one of 5 parties (in this dataset).
 
-Some of the features have to be adjusted before analysis. The contb_receipt_dt feature needs to be a date type. The contbr_zip is an int type but it would make more sense as a factor type.
-Some features can be removed because they would not contribute to the analysis. cand_id, file_num, and contbr_st do not add any extra information from an analysis perspective.
-It is interesting that while tran_id is a unique id it has less levels than the number of observations.
+Some of the features have to be adjusted before analysis. The contb_receipt_dt feature needs to be a date type. The contbr_zip is a num type but it would make more sense as a factor type. It might be helpful to convert any zip-plus-4 codes to normal zip codes.
+
+Some features can be removed because they would not contribute to the analysis. cand_id, cmte_id, file_num, and contbr_st do not add any extra information from an analysis perspective.
+It is interesting that while tran_id is a unique id it has slightly less levels than the number of observations.
 
 ```{r adjust_features}
 # Remove unneeded features
-df <- subset(df, select = -c(cand_id, file_num, contbr_st))
+df <- subset(df, select = -c(cand_id, cmte_id, file_num, contbr_st))
 
 # Convert features to correct data type
 df$contbr_zip <- factor(df$contbr_zip)
+df$contbr_zip_p4 <- df$contbr_zip
+
+df$contbr_zip <- sapply(df$contbr_zip, FUN = as.character)
+df$contbr_zip <- sapply(df$contbr_zip, FUN = function(x) substr(x, start=1, stop=5))
+df$contbr_zip <- factor(df$contbr_zip)
+
 df$contb_receipt_dt <- as.Date(df$contb_receipt_dt, "%d-%b-%y")
 ```
 
@@ -73,15 +80,8 @@ df$contb_receipt_dt <- as.Date(df$contb_receipt_dt, "%d-%b-%y")
 summary(df)
 ```
 
-We can see that the contribution receipt dates range 3 years from 2013-12-31 to 2016-12-31. It looks like the committees are matched with the candidate. Also, Hillary Clinton got more than 50% of all the contributions in the dataset. Did she also get more than 50% of the aggregate contribution amount? Most contributions do not name an employer, and a 1/4th of the contributions are from retired people. The majority of receipts had no description.
-
-I think it would useful to know the political party of the candidates.
-
-```{r committee_names}
-committees <- levels(df$cand_id)
-
-committees
-```
+We can see that the contribution receipt dates range 3 years from 2013-12-31 to 2016-12-31. It's clear that the committees matched to the candidate. Democratic candidates recieved almost 3 times the number of contributions of the other parties combined. Also, Hillary Clinton got more than 50% of all the contributions in the dataset. Did she also get more than 50% of the aggregate contribution amount? 
+The top 5 contribution counts are from the Northern Virginia area. This is not surprising because of the population density and proximity to Washington, DC. Most contributions do not name an employer, and a 1/4th of the contributions are from retired people. The majority of receipts had no description.
 
 
 
