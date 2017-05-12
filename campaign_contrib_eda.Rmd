@@ -42,7 +42,7 @@ df <- read.csv("virginia_contributions_mod.csv", header = TRUE, sep = ",")
 
 Presidential Map Contributor Dataset from the Federal Election Commission is a dataset of all individual campaign contributions, refunds to individuals, and transfers from authorized committees. This report will explore a subset of this dataset for contributions from Virginia during the 2016 election cycle. 
 
-##Univariate Analysis
+# Univariate Analysis
 
 ```{r data_dim}
 dim(df)
@@ -83,21 +83,133 @@ summary(df)
 We can see that the contribution receipt dates range 3 years from 2013-12-31 to 2016-12-31. It's clear that the committees matched to the candidate. Democratic candidates recieved almost 3 times the number of contributions of the other parties combined. Also, Hillary Clinton got more than 50% of all the contributions in the dataset. Did she also get more than 50% of the aggregate contribution amount? 
 The top 5 contribution counts are from the Northern Virginia area. This is not surprising because of the population density and proximity to Washington, DC. Most contributions do not name an employer, and a 1/4th of the contributions are from retired people. The majority of receipts had no description.
 
+## Candidate Graphs {.tabset}
+
+### All contributions
+
+```{r cand_full}
+horiz_lab <- theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))
+
+ggplot(data = df, aes(x = cand_nm)) +
+  geom_bar() +
+  horiz_lab
+```
+
+### Less than 15000 contributions
+
+```{r cand_less_15000}
+ggplot(data = df[df$cand_nm %in% levels(df$cand_nm)[table(df$cand_nm)<15000], ], aes(x = cand_nm)) +
+  geom_bar() +
+  horiz_lab
+```
+
+### Less than 5000 contributions
+
+```{r cand_less_5000}
+ggplot(data = df[df$cand_nm %in% levels(df$cand_nm)[table(df$cand_nm)<5000], ], aes(x = cand_nm)) +
+  geom_bar() +
+  horiz_lab
+```
+
+### Less than 500 contributions
+
+```{r cand_less_500}
+ggplot(data = df[df$cand_nm %in% levels(df$cand_nm)[table(df$cand_nm)<500], ], aes(x = cand_nm)) +
+  geom_bar() +
+  horiz_lab
+```
+
+### Party Aggregate
+
+```{r party_graph}
+ggplot(data = df, aes(x = cand_party)) +
+  geom_bar()
+```
+
+##
+
+We can see that most of the candidates got very few contributions compared to Clinton, Sanders, and Trump. Even if the top 3 "outliers" are removed, we can see that most of the 25 candidates received less than 5000 contributions. More than half of the candidates received even less than 250 contributions. It will be interesting to see how the number of contributions relates to the amount contributed. Republicans could be getting less contribution but those contributions have a high receipt amount. So, are the aggregate receipt amounts more even between the parties?
+
+## Geographic Data Graphs {.tabset}
+
+### Cities (Top 20 Count)
+
+```{r cities_graph_high_20}
+# with help from https://www.r-bloggers.com/data-frame-columns-as-arguments-to-dplyr-functions/
+
+reduce_count <- function(x, y) {
+  x %>%
+    select_(y) %>%
+    count_(y) -> new_out
+  return(new_out)
+}
+
+df.contbr_city <- reduce_count(df, "contbr_city")
+
+ggplot(data = top_n(df.contbr_city, 20, n), aes(x = contbr_city, y = n)) +
+   geom_bar(stat = "identity") +
+   horiz_lab
+```
+
+Most of the cities in the top 20 are near Washington, DC. The other ones (Richmond, Virginia Beach) are major population centers. These results aren't surprising. It is interesting that Henrico is actually the county surrounding Richmond. It is clear that there are some anomalies in the dataset.
+
+We will see that better by looking a the low count cities.
+
+### Cities (Low Counts)
+
+```{r cities_table_low}
+subset(df.contbr_city, df.contbr_city$n == 1)
+```
+
+There are 265 rows that had a count of 1. Many of these are misspelled names or names of cities outside of Virginia (New York, Las Vegas). While the misspellings could be cleaned up, it doesn't seem worth the effort for such a low amount relative to the whole sample size.
+
+### Zipcodes
+
+```{r zipcodes_graph}
+df.zip <- reduce_count(df, "contbr_zip")
+
+ggplot(data = top_n(df.zip, 40, n), aes(x = contbr_zip, y = n)) +
+  geom_bar(stat="identity") +
+  coord_flip(expand = TRUE)
+```
+
+The amount of contributions per zipcode looks close to the cities with a few more spikes. Some cities contain several zipcodes so much of the spread is just subdivision of the city amounts.
+
+### Zipcodes Distribution
+
+```{r zip_count}
+ggplot(data = df.zip, aes(x = n)) +
+  geom_histogram(bins = 100) +
+  scale_x_sqrt()
+```
+
+Scaled by a square root, the histagram shows that most of the zipcodes had less than 500 contributions.
+
+##
+
+## Contributor Employment {.tabset}
+
+### Contributor Occupation
+```{r contbr_occup}
+df.contbr_occup <- reduce_count(df, "contbr_occupation")
+
+ggplot(data = top_n(df.contbr_occup, 20, n), aes(x = contbr_occupation, y = n)) +
+  geom_bar(stat = "identity") +
+  coord_flip() +
+  theme(axis.text.y = element_text(size = 8))
+```
 
 
 
+### Contributor Employer
+```{r contbr_employer}
+df.contbr_employer <- reduce_count(df, "contbr_employer")
 
-
-
-
-
-
-
-
-
-
-
-
+ggplot(data = top_n(df.contbr_employer, 20, n), aes(x = contbr_employer, y = n)) +
+  geom_bar(stat = "identity") +
+  coord_flip() +
+  theme(axis.text.y = element_text(size = 8))
+```
 
 
 
