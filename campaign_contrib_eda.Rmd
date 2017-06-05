@@ -28,11 +28,11 @@ if (!require(ggplot2)) install.packages('ggplot2')
 library(ggplot2)
 theme_set(theme_bw())
 
-if (!require(GGally)) install.packages('GGally')
-library(GGally)
+if (!require(DT)) install.packages('DT')
+library(DT)
 
-if (!require(corrplot)) install.packages('corrplot')
-library(corrplot)
+if (!require(zoo)) install.packages('zoo')
+library(zoo)
 ```
 
 ```{r load_data}
@@ -42,7 +42,7 @@ df <- read.csv("virginia_contributions_mod.csv", header = TRUE, sep = ",")
 
 Presidential Map Contributor Dataset from the Federal Election Commission is a dataset of all individual campaign contributions, refunds to individuals, and transfers from authorized committees. This report will explore a subset of this dataset for contributions from Virginia during the 2016 election cycle. 
 
-# Univariate Analysis
+# Univariate Plots
 
 ```{r data_dim}
 dim(df)
@@ -80,42 +80,83 @@ df$contb_receipt_dt <- as.Date(df$contb_receipt_dt, "%d-%b-%y")
 summary(df)
 ```
 
-We can see that the contribution receipt dates range 3 years from 2013-12-31 to 2016-12-31. It's clear that the committees matched to the candidate. Democratic candidates recieved almost 3 times the number of contributions of the other parties combined. Also, Hillary Clinton got more than 50% of all the contributions in the dataset. Did she also get more than 50% of the aggregate contribution amount? 
-The top 5 contribution counts are from the Northern Virginia area. This is not surprising because of the population density and proximity to Washington, DC. Most contributions do not name an employer, and a 1/4th of the contributions are from retired people. The majority of receipts had no description.
+We can see that the contribution receipt dates range 3 years from 2013-12-31 to 2016-12-31. It's clear that the committees matched to the candidate. Democratic candidates received almost 3 times the number of contributions of the other parties combined. Also, Hillary Clinton got more than 50% of all the contributions in the dataset. Did she also get more than 50% of the aggregate contribution amount? 
+The top 5 contribution counts are from the Northern Virginia area. This is not surprising because of the population density and proximity to Washington, DC. Most contributions do not name an employer, and a 1/4 of the contributions are from retired people. The majority of receipts had no description.
 
-## Candidate Graphs {.tabset}
+## Timeline {.tabset}
+
+### Daily
+```{r daily_timeline}
+date.count <- df %>%
+  count(contb_receipt_dt)
+
+ggplot(data = date.count, aes(x = contb_receipt_dt, y = n)) +
+  geom_bar(stat = "identity") +
+  geom_smooth()
+```
+
+From 2014 to 2015 there were few contributions to the national campaign with many days completely free of contributions. 2015 to 2016 saw a steady incline of the frequency of contributions, but the daily numbers stayed below 500 contributions. 2016 was scattered mix with many spikes in contributions. These spikes can likely be explained by major events or scandals that occurred during this election period.
+
+### Monthly Timeline
+```{r monthly_timeline}
+month.count <- df %>%
+  mutate(contb_receipt_dt = as.Date(as.yearmon(contb_receipt_dt), frac = 1)) %>%
+  count(contb_receipt_dt)
+
+horiz_lab <- theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))
+
+ggplot(data = month.count, aes(x = contb_receipt_dt, y = n)) +
+  geom_bar(stat = "identity") +
+  horiz_lab
+```
+
+With this division, we can plainly the spikes in contributions by month. We can see that the first uptick was during the primary election from February 2016 to April 2016. Then we have decline followed by big increase in July 2016 leading up to the presidential election in November 2016. October 2016 was the last push to campaign before election day, and it shows in the major increase. It's interesting that November still had so many contributions even when the election date is so early in the month.
+
+##
+
+## Candidates {.tabset}
+
+### Candidate Summary
+```{r candidate_stats}
+df$cand_nm <- sapply(df$cand_nm, FUN = as.character)
+
+cand.count <- df %>%
+  select(cand_nm) %>%
+  count(cand_nm) %>%
+  arrange(desc(n))
+
+cand.count
+```
 
 ### All contributions
 
 ```{r cand_full}
-horiz_lab <- theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))
-
-ggplot(data = df, aes(x = cand_nm)) +
-  geom_bar() +
+ggplot(data = cand.count, aes(x = reorder(cand_nm, -n), y = n)) +
+  geom_bar(stat = "identity") +
   horiz_lab
 ```
 
 ### Less than 15000 contributions
 
 ```{r cand_less_15000}
-ggplot(data = df[df$cand_nm %in% levels(df$cand_nm)[table(df$cand_nm)<15000], ], aes(x = cand_nm)) +
-  geom_bar() +
+ggplot(data = cand.count[cand.count$n < 15000,], aes(x = reorder(cand_nm, -n), y = n)) +
+  geom_bar(stat = "identity") +
   horiz_lab
 ```
 
 ### Less than 5000 contributions
 
 ```{r cand_less_5000}
-ggplot(data = df[df$cand_nm %in% levels(df$cand_nm)[table(df$cand_nm)<5000], ], aes(x = cand_nm)) +
-  geom_bar() +
+ggplot(data = cand.count[cand.count$n < 5000,], aes(x = reorder(cand_nm, -n), y = n)) +
+  geom_bar(stat = "identity") +
   horiz_lab
 ```
 
 ### Less than 500 contributions
 
 ```{r cand_less_500}
-ggplot(data = df[df$cand_nm %in% levels(df$cand_nm)[table(df$cand_nm)<500], ], aes(x = cand_nm)) +
-  geom_bar() +
+ggplot(data = cand.count[cand.count$n < 500,], aes(x = reorder(cand_nm, -n), y = n)) +
+  geom_bar(stat = "identity") +
   horiz_lab
 ```
 
@@ -137,6 +178,8 @@ We can see that most of the candidates got very few contributions compared to Cl
 ```{r cities_graph_high_20}
 # with help from https://www.r-bloggers.com/data-frame-columns-as-arguments-to-dplyr-functions/
 
+df$contbr_city = sapply(df$contbr_city, FUN = as.character)
+
 reduce_count <- function(x, y) {
   x %>%
     select_(y) %>%
@@ -144,9 +187,9 @@ reduce_count <- function(x, y) {
   return(new_out)
 }
 
-df.contbr_city <- reduce_count(df, "contbr_city")
+city.count <- reduce_count(df, "contbr_city")
 
-ggplot(data = top_n(df.contbr_city, 20, n), aes(x = contbr_city, y = n)) +
+ggplot(data = top_n(city.count, 20, n), aes(x = reorder(contbr_city, -n), y = n)) +
    geom_bar(stat = "identity") +
    horiz_lab
 ```
@@ -158,7 +201,7 @@ We will see that better by looking a the low count cities.
 ### Cities (Low Counts)
 
 ```{r cities_table_low}
-subset(df.contbr_city, df.contbr_city$n == 1)
+subset(city.count, city.count$n == 1)
 ```
 
 There are 265 rows that had a count of 1. Many of these are misspelled names or names of cities outside of Virginia (New York, Las Vegas). While the misspellings could be cleaned up, it doesn't seem worth the effort for such a low amount relative to the whole sample size.
@@ -166,50 +209,453 @@ There are 265 rows that had a count of 1. Many of these are misspelled names or 
 ### Zipcodes
 
 ```{r zipcodes_graph}
-df.zip <- reduce_count(df, "contbr_zip")
+zip.count <- reduce_count(df, "contbr_zip")
 
-ggplot(data = top_n(df.zip, 40, n), aes(x = contbr_zip, y = n)) +
+ggplot(data = top_n(zip.count, 40, n), aes(x = reorder(contbr_zip, n), y = n)) +
   geom_bar(stat="identity") +
   coord_flip(expand = TRUE)
 ```
 
-The amount of contributions per zipcode looks close to the cities with a few more spikes. Some cities contain several zipcodes so much of the spread is just subdivision of the city amounts.
+The amount of contributions per zip code looks close to the cities with a few more spikes. Some cities contain several zip codes so much of the spread is just subdivision of the city amounts.
 
 ### Zipcodes Distribution
 
 ```{r zip_count}
-ggplot(data = df.zip, aes(x = n)) +
+ggplot(data = zip.count, aes(x = n)) +
   geom_histogram(bins = 100) +
-  scale_x_sqrt()
+  scale_x_sqrt() +
+  labs(y = "Number of Zipcodes", x = "Number of Contributions")
 ```
 
-Scaled by a square root, the histagram shows that most of the zipcodes had less than 500 contributions.
+Scaled by a square root, the histogram shows that most of the zip codes had less than 500 contributions.
 
 ##
 
 ## Contributor Employment {.tabset}
 
 ### Contributor Occupation
-```{r contbr_occup}
-df.contbr_occup <- reduce_count(df, "contbr_occupation")
+```{r contbr_occupation}
+# many of these changes felt necessary only after getting futher into the analysis
+df$contbr_occupation <- sapply(df$contbr_occupation, FUN = as.character)
+df$contbr_occupation <- gsub("^INFORMATION REQUESTED PER BEST EFFORTS$", "INFORMATION REQUESTED", df$contbr_occupation)
+df$contbr_occupation <- gsub("^LAWYER$", "ATTORNEY", df$contbr_occupation)
 
-ggplot(data = top_n(df.contbr_occup, 20, n), aes(x = contbr_occupation, y = n)) +
+occupation.count <- reduce_count(df, "contbr_occupation")
+
+ggplot(data = top_n(occupation.count, 20, n), aes(x = reorder(contbr_occupation, n), y = n)) +
   geom_bar(stat = "identity") +
   coord_flip() +
   theme(axis.text.y = element_text(size = 8))
 ```
 
-
+The majority of the top 20 contributors were retired. It's interesting that the next highest group said they were unemployed. It will be interesting to see how much each occupation group actually contributed. "Information requested" and "Information requested per best efforts" are best effort designations showing that the committee tried to get additional information from a contributor. 
 
 ### Contributor Employer
 ```{r contbr_employer}
-df.contbr_employer <- reduce_count(df, "contbr_employer")
+# many of these changes felt necessary only after getting further into the analysis
+df$contbr_employer <- sapply(df$contbr_employer, FUN = as.character)
+df$contbr_employer <- gsub("^INFORMATION REQUESTED PER BEST EFFORTS$", "INFORMATION REQUESTED", df$contbr_employer)
+df$contbr_employer <- gsub("^SELF$", "SELF-EMPLOYED", df$contbr_employer)
+df$contbr_employer <- gsub("^SELF EMPLOYED$", "SELF-EMPLOYED", df$contbr_employer)
+df$contbr_employer <- gsub("^DOD$", "U.S. DEPARTMENT OF DEFENSE", df$contbr_employer)
+df$contbr_employer <- gsub("^US NAVY$", "U.S. NAVY", df$contbr_employer)
 
-ggplot(data = top_n(df.contbr_employer, 20, n), aes(x = contbr_employer, y = n)) +
+employer.count <- reduce_count(df, "contbr_employer")
+
+ggplot(data = top_n(employer.count, 20, n), aes(x = reorder(contbr_employer, n), y = n)) +
   geom_bar(stat = "identity") +
   coord_flip() +
   theme(axis.text.y = element_text(size = 8))
 ```
+
+Many of the contributors chose to not give their employer name. Again, many people are retired or have no employer. Interestingly many people report self-employment.
+
+##
+
+## Contribution Receipt Amount {.tabset}
+
+### Raw Histogram
+
+```{r contb_receipt_amt.graph}
+receipt_amt_graph <- ggplot(data = df, aes(x = contb_receipt_amt)) +
+  geom_histogram(binwidth = 100)
+
+receipt_amt_graph
+```
+
+As the summary showed, the median contribution receipt amount is within \$100 or \$37 to be exact.
+
+### Zoomed Histogram
+
+```{r receipt_graph_zoom}
+receipt_amt_graph +
+  scale_y_sqrt() +
+  coord_cartesian(ylim = c(0, 50000))
+```
+
+I scaled the counts by a square root to be able to see the lower count receipt amounts. Looking closer we can see that small contributions are the most popular, which isn't particularly surprising. Although, there are spikes at roughly \$300 and \$2500. There are also a few negative amounts or returned contributions.
+
+##
+
+# Univariate Analysis
+
+The dataset started with 20 features, several of them redundant. 212849 contributions were made within a span of 3 years from December 31, 2013 to December 31, 2017. Some of these logged contributions were actually returns. About 3/4 of the contributions went to Democratic candidates/committees. Most of the contributions come from the Northern Virginia area and major population centers. The vast majority of contributions are within \$100.
+
+The committee name and political party features was added to this dataset through a separate python script. Although, the committee features do not give any more information than the candidate name feature.
+
+The zip codes feature was reduced to only 5 digits. Zip code + 4 is very specific, and the change makes it more broad. The receipt date feature had to be changed from a factor type to an actual Date type.
+
+Several features could be cleaned up, but that is unnecessary. For example, we saw that there were several cities that were misspelled or were not Virginia cities. That amount is negligible relative to the dataset, so the effort of cleaning the data would be much higher than the value of the extra datapoint.
+
+```{r city.count.count}
+city.count.count <- city.count %>%
+  mutate(nf = factor(n)) %>%
+  select(nf) %>%
+  count(nf)
+
+head(city.count.count, 10)
+```
+
+For the city feature, I will assume that the city names with counts of up to 10 (nf means factor of the count) would have some data that would require cleaning. The count of each of those is above.
+
+```{r city.count.ten.sum}
+city.count.count %>%
+  # Learned about the way to avoid information loss on conversion from factor to numeric at the link below.
+  # http://stackoverflow.com/questions/3418128/how-to-convert-a-factor-to-an-integer-numeric-without-a-loss-of-information
+  
+  mutate(n_product = as.numeric(levels(nf))[nf] * n) %>%
+  summarise(sum(head(n_product, 10)))
+```
+
+If I take the sum of the products of each of the 10 rows, I can get a rough idea about the amount noisy datapoints we might have (above). So that's 0.74982734238% of the data points. I think other variables (ie. employer, occupation) with free text input would be similar.
+
+I want to see which variables might affect 1) the candidate or party that is contributed to and 2) the receipt amount of the contribution. The geographic and occupation are the only demographic variables for contributors, so they might not provide much more than basic explanatory power.
+
+
+# Bivariate Plots
+
+## Receipt Amount over Time {.tabset}
+
+```{r date.receipt}
+date.receipts.summary <- df %>%
+  mutate(contb_receipt_dt = as.Date(as.yearmon(contb_receipt_dt), frac = 1)) %>%
+  group_by(contb_receipt_dt) %>%
+  summarise(mean_receipt = mean(contb_receipt_amt),
+            median_receipt = median(contb_receipt_amt),
+            agg_receipt = sum(contb_receipt_amt))
+```
+
+### Mean/Median Receipts
+```{r date.receipts.mean.median}
+ggplot(data = date.receipts.summary, aes(x = contb_receipt_dt)) +
+  geom_bar(aes(y = mean_receipt, fill = "Mean"), stat = "identity") +
+  geom_bar(aes(y = median_receipt, fill = "Median"), stat = "identity") +
+  horiz_lab +
+  labs(y = "Receipt Amount", x = "Date", fill = "Stat")
+```
+
+There mean and median contribution receipt amounts throughout the election are quite interesting. They are almost the opposite of the frequency of contributions in the same time period. Earlier in the election there were fewer contributions per month, so the means are much more heavily affected by any large contribution. We can also see that excess or late contributions were being returned after the election ended, so the December 2017 mean is actually negative.
+
+### Aggregate Receipts
+```{r date.receipts.agg}
+ggplot(data = date.receipts.summary, aes(x = contb_receipt_dt)) +
+  geom_bar(aes(y = agg_receipt), stat = "identity") +
+  horiz_lab +
+  labs(y = "Receipt Amount", x = "Date")
+```
+
+The aggregate receipts per month follow much closer to the contribution counts per month. We can see again that many people contributed around the party primary elections and the general election.
+
+##
+
+## Amount by Candidate {.tabset}
+
+### Summary Table
+```{r cand_receipt_summary}
+cand.receipts.summary <- df %>%
+  group_by(cand_nm) %>%
+  summarise(mean_receipt = mean(contb_receipt_amt), 
+            median_receipt = median(contb_receipt_amt),
+            min_receipt = min(contb_receipt_amt),
+            max_receipt = max(contb_receipt_amt),
+            agg_receipt = sum(contb_receipt_amt))
+
+# merging help from https://stackoverflow.com/questions/8091303/simultaneously-merge-multiple-data-frames-in-a-list
+
+cand.receipts.summary <- Reduce(function(df1, df2) left_join(df1, df2, by="cand_nm"), list(cand.receipts.summary, cand.count))
+
+DT::datatable(cand.receipts.summary)
+```
+
+### Mean/Median Receipts
+```{r cand_receipt_mean}
+ggplot(data = cand.receipts.summary, aes(x = reorder(cand_nm, -mean_receipt))) +
+  geom_bar(aes(y = mean_receipt, fill = "Mean"), stat = "identity") +
+  geom_bar(aes(y = median_receipt, fill = "Median"), stat = "identity") +
+  horiz_lab +
+  labs(y = "Receipt Amount", x = "Candidate", fill = "Stat")
+```
+
+For all candidates except Rick Perry, the mean contribution receipt is larger than the median. The two democratic candidates that got the most contributions have some of the lowest median and mean receipts. Bernie Sanders's mean median receipts are almost equal.
+
+### Max/Min Receipt
+```{r cand.max.min.receipt}
+ggplot(data = cand.receipts.summary, aes(x = reorder(cand_nm, max_receipt))) +
+  geom_bar(aes(y = max_receipt, fill = "Max"), stat = "identity") +
+  geom_bar(aes(y = min_receipt, fill = "Min"), stat = "identity") +
+  coord_flip() +
+  labs(y = "Receipt Amount", x = "Candidate", fill = "Stat")
+```
+
+Ted Cruz and Donald Trump had the largest value receipt with the next largest being slightly higher than half the amount. It's odd that Scott Walker's negative receipt is actually larger than his maximum receipt. It might mean that that is part of the amount that was returned after he dropped out of the campaign.
+
+### Aggregate Receipts
+```{r cand.agg.receipt}
+ggplot(data = cand.receipts.summary, aes(x = reorder(cand_nm, -agg_receipt))) +
+  geom_bar(aes(y = agg_receipt), stat = "identity") +
+  horiz_lab +
+  labs(y = "Receipt Amount", x = "Candidate")
+```
+
+Hillary Clinton received the highest amount of money from Virginia contributors by a large margin. It's surprising that Jeb Bush had a similar aggregate receipt amount as Ted Cruz, but Bush had about 1/10 of the number of contributions as Cruz. Similarly, Bernie Sanders had close to twice the number of contributions as Donald Trump but had half of the aggregate receipt amount.
+
+### Receipt Distribution
+```{r receipt.distribution}
+top_4_cand <- top_n(cand.count, 4, n)["cand_nm"]
+
+ggplot(data = df %>% inner_join(top_4_cand), aes(x = contb_receipt_amt)) +
+  geom_histogram(binwidth = 50) +
+  scale_y_sqrt() +
+  coord_cartesian(xlim = c(-5000, 5000), ylim = c(0, 20000)) +
+  facet_wrap(~ cand_nm)
+
+```
+
+Looking at the receipt distribution of the top 4 candidates (by count), we can see that for each candidate the distribution is heavily centered at contributions that are less than \$500. Hillary Clinton's graph has been reduced, but it reaches up to 50000 contributions in the center. It's hard to tell whether Ted Cruz's or Bernie Sanders's distribution is the most narrow of the 4 cardidates.
+
+### Summary Assessment
+
+It's clear that Hillary Clinton was the most popular candidate in Virginia. She had the most contributions and did not get the highest aggregate receipts just by high value donations. 
+It isn't necessary to look at the impact of political party on the number of contributions or the overall receipts, since all the republican candidates combined wouldn't overtake Hillary Clinton's aggregate receipts.
+
+##
+
+## Receipt Amount by Location {.tabset}
+
+### Summary Table
+```{r top_30_city.receipt}
+top_30_city <- top_n(city.count, 30, n)["contbr_city"]
+
+city.receipts.summary <- df %>%
+  group_by(contbr_city) %>%
+  summarise(mean_receipt = mean(contb_receipt_amt), 
+            median_receipt = median(contb_receipt_amt),
+            min_receipt = min(contb_receipt_amt),
+            max_receipt = max(contb_receipt_amt),
+            agg_receipt = sum(contb_receipt_amt)) %>%
+  inner_join(top_30_city)
+
+city.receipts.summary <- Reduce(function(df1, df2) left_join(df1, df2, by="contbr_city"), list(city.receipts.summary, city.count))
+
+DT::datatable(city.receipts.summary)
+```
+
+### Mean/Median Receipt
+```{r city.receipt.mean.median}
+ggplot(data = city.receipts.summary, aes(x = reorder(contbr_city, -mean_receipt))) +
+  geom_bar(aes(y = mean_receipt, fill = "Mean"), stat = "identity") +
+  geom_bar(aes(y = median_receipt, fill = "Median"), stat = "identity") +
+  horiz_lab +
+  labs(y = "Receipt Amount", x = "Candidate", fill = "Stat")
+```
+
+McLean has a significantly higher mean receipt than the rest of the top 30 contributing cities. However, McClean had a significantly lower contribution count than Arlington and Alexandria. It is not surprising that the top 5 cities in this group are in the Northern Virginia area which is, on average, the richest area in Virginia and a Washington, DC suburb.
+
+### Max/Min Receipt
+```{r city.max.min}
+ggplot(data = city.receipts.summary, aes(x = reorder(contbr_city, max_receipt))) +
+  geom_bar(aes(y = max_receipt, fill = "Max"), stat = "identity") +
+  geom_bar(aes(y = min_receipt, fill = "Min"), stat = "identity") +
+  coord_flip() +
+  labs(y = "Receipt Amount", x = "City", fill = "Stat")
+```
+
+The biggest contribution came from a person in Alexandria, and the rest of the cities' contributions were at most half of the of the one from Alexandria. McLean and Norfolk had minimum (or negative) contributions that were higher than the maximum contribution. While this could be an error, it is possible that the funds were just rejected a candidate or committee for political or legal reasons. 
+
+### Aggregate Receipt
+```{r city.agg}
+ggplot(data = city.receipts.summary, aes(x = reorder(contbr_city, -agg_receipt))) +
+  geom_bar(aes(y = agg_receipt), stat = "identity") +
+  horiz_lab +
+  labs(y = "Receipt Amount", x = "City")
+```
+
+As would be expected, Arlington and Alexandria have the highest aggregate contribution receipts. McLean surpassed Richmond, but it had close to half as many contributions as Richmond. McLean did have a much higher mean receipt than every other city.
+
+### Summary Analysis
+
+Generally, the population centers of Virginia are represented on the list of top 30 contribution counts. We can see that Northern Virginia cities dominate the list of the highest contribution amounts and receipt amounts. It isn't completely surprising since Northern Virginia is close to DC, and the people in this area will be the most affected by a national election. McLean is an interesting city because it had such a high mean receipt amount from around 6000 contributions. How are these contributions distributed between the candidates or parties? We haven't looked much at the actual contributors by name. Could some of these statistics be influenced by just a few individuals?
+
+##
+
+## Receipts by Occupation {.tabset}
+
+### Summary Table
+```{r occupation.summary.table}
+top_30_occupation <- sapply(top_n(occupation.count, 30, n)["contbr_occupation"], FUN = as.character)
+
+occupation.receipts.summary <- df %>%
+  group_by(contbr_occupation) %>%
+  summarise(mean_receipt = mean(contb_receipt_amt), 
+            median_receipt = median(contb_receipt_amt),
+            min_receipt = min(contb_receipt_amt),
+            max_receipt = max(contb_receipt_amt),
+            agg_receipt = sum(contb_receipt_amt)) %>%
+  filter(contbr_occupation %in% top_30_occupation)
+
+occupation.receipts.summary <- Reduce(function(df1, df2) left_join(df1, df2, by="contbr_occupation"), list(occupation.receipts.summary, occupation.count))
+
+DT::datatable(occupation.receipts.summary)
+```
+
+### Mean/Median Receipt
+```{r occupation.receipt.mean.median}
+ggplot(data = occupation.receipts.summary, aes(x = reorder(contbr_occupation, mean_receipt))) +
+  geom_bar(aes(y = mean_receipt, fill = "Mean"), stat = "identity") +
+  geom_bar(aes(y = median_receipt, fill = "Median"), stat = "identity") +
+  coord_flip() +
+  labs(y = "Receipt Amount", x = "Occupation", fill = "Stat")
+```
+
+Executives have a high mean and median contribution receipt amount which is not unusual. Homemakers had a surprisingly high mean receipt amount, maybe related to executives in some way. It is also interesting that RNs had a lower mean receipt than even unemployed people. Are RNs generally less likely to contribute large amounts or is this particular to this election or state?
+
+The blank rows have a negative mean and median receipt amount. The likely reason is that returned contributions do not have to have an occupation listed. With that same reasoning, I suppose that if the field is left blank, the committee/candidate cannot accept a contribution without requesting this information.
+
+### Min/Max Receipt
+```{r occupation.receipt.min.max}
+ggplot(data = occupation.receipts.summary, aes(x = reorder(contbr_occupation, max_receipt))) +
+  geom_bar(aes(y = max_receipt, fill = "Max"), stat = "identity") +
+  geom_bar(aes(y = min_receipt, fill = "Min"), stat = "identity") +
+  coord_flip() +
+  labs(y = "Receipt Amount", x = "Occupation", fill = "Stat")
+```
+
+The maximum receipts look more even between groups than was the mean. Again, RN's are at the bottom of the list with a significantly lower maximum contribution than the rest of the groups.
+
+Seeing the maximum receipt by the blank group makes me question my previous assumptions. Maybe there is no obligation to get occupation information. It is hard to determine without looking at the actual regulations for campaign contributions. 
+
+### Aggregate Receipt
+```{r occupation.agg}
+ggplot(data = occupation.receipts.summary, aes(x = reorder(contbr_occupation, -agg_receipt))) +
+  geom_bar(aes(y = agg_receipt), stat = "identity") +
+  horiz_lab +
+  labs(y = "Receipt Amount", x = "Occupation")
+```
+
+Overall, retired people contributed \$5000000 of the \$28000000 contributed this campaign. The amount quickly declines after retirees. Homemakers and unemployed people surpassed executives in aggregate contributions. Is the frequency of contributions related to the average amount of individual leisure time? That would help explain the prominence of some of the groups in this dataset.
+
+### Summary Analysis
+
+The contribution receipts by occupation had some interesting results. We saw from looking at the counts that the most frequent contributions came from retirees, unemployed, info requested, attorneys, and consultants, in that order. While there were around 13000 contributions from the unemployed group, their average contribution was quite small compared to the rest of the top 5 groups. Surprisingly homemakers had a higher aggregate receipt amount with only 3000 contributions.
+
+##
+
+## Receipts by Employer {.tabset}
+
+### Summary Table
+```{r employer.summary.table}
+top_30_employer <- sapply(top_n(employer.count, 30, n)["contbr_employer"], FUN = as.character)
+
+employer.receipts.summary <- df %>%
+  group_by(contbr_employer) %>%
+  summarise(mean_receipt = mean(contb_receipt_amt), 
+            median_receipt = median(contb_receipt_amt),
+            min_receipt = min(contb_receipt_amt),
+            max_receipt = max(contb_receipt_amt),
+            agg_receipt = sum(contb_receipt_amt)) %>%
+  filter(contbr_employer %in% top_30_employer)
+
+employer.receipts.summary <- Reduce(function(df1, df2) left_join(df1, df2, by="contbr_employer"), list(employer.receipts.summary, employer.count))
+
+DT::datatable(employer.receipts.summary)
+```
+
+### Mean/Median Receipt
+```{r employer.receipt.mean.median}
+ggplot(data = employer.receipts.summary, aes(x = reorder(contbr_employer, mean_receipt))) +
+  geom_bar(aes(y = mean_receipt, fill = "Mean"), stat = "identity") +
+  geom_bar(aes(y = median_receipt, fill = "Median"), stat = "identity") +
+  coord_flip() +
+  labs(y = "Receipt Amount", x = "Employer", fill = "Stat")
+```
+
+The mean receipt of homemakers in the occupation column is slightly different than the one for employer. It could be that some of the people that listed themselves as a homemaker could have left the employer section blank or written self-employed. Out of the `r occupation.count$n[occupation.count$contbr_occupation == "HOMEMAKER"]` that listed themselves as homemaker, `r length(df$contbr_occupation[df$contbr_employer == "HOMEMAKER"])` also listed homemaker on employer. It's interesting how many actual companies are represented in the dataset.
+
+### Min/Max Receipt
+```{r employer.receipt.min.max}
+ggplot(data = employer.receipts.summary, aes(x = reorder(contbr_employer, max_receipt))) +
+  geom_bar(aes(y = max_receipt, fill = "Max"), stat = "identity") +
+  geom_bar(aes(y = min_receipt, fill = "Min"), stat = "identity") +
+  coord_flip() +
+  labs(y = "Receipt Amount", x = "Employer", fill = "Stat")
+```
+
+The maximum contribution is even between most of the employers. The self-employed and the blank groups could contain so many different types of individuals that it's hard to get anything out of their maximum contributions.
+
+### Aggregate Receipt
+```{r employer.agg}
+ggplot(data = employer.receipts.summary, aes(x = reorder(contbr_employer, -agg_receipt))) +
+  geom_bar(aes(y = agg_receipt), stat = "identity") +
+  horiz_lab +
+  labs(y = "Receipt Amount", x = "Employer")
+```
+
+It isn't surprising that the biggest groups of contributors would have the highest aggregate receipt amount. It seems that there are too many different employers to be able to gain too much information about the contributions. It is clear that large organizations or groups (retiree) will be more respresented in this list. 
+
+### Summary Analysis
+
+The most obvious thing about the employer feature is that it is too broad. There are also many names that could be fixed or consolidated. While I was able to convert a few of the major employers (DOD, US Navy), more issues become apparent. Like I discussed earlier about cities, it might not be worth the effort to try to clean up this variable.
+
+##
+
+## Candidate Contributions by Date {.tabset}
+
+### All Candidates
+```{r cand.date}
+cand.date.count <- df %>%
+  select(cand_nm, contb_receipt_dt) %>%
+  mutate(contb_receipt_dt = as.Date(as.yearmon(contb_receipt_dt), frac = 1)) %>%
+  group_by(contb_receipt_dt) %>%
+  count(cand_nm)
+
+ggplot(data = cand.date.count, aes(x = contb_receipt_dt, y = n, fill = cand_nm)) +
+  geom_bar(stat = "identity")
+```
+
+```{r cand.date.top.5}
+top_5_cand <- top_n(cand.count, 5, n)["cand_nm"]
+
+ggplot(data = cand.date.count %>% inner_join(top_5_cand), aes(x = contb_receipt_dt, y = n, fill = cand_nm)) +
+  geom_bar(stat = "identity")
+```
+
+These plots paint an interesting picture of the election, at least in Virginia. The Virginia Party Primary elections were is March 2016. Looking at the contributions leading up to March, I would expect Bernie Sanders to win the Democratic delegates and a close race between the 2 Republican delegates. What we actually saw was a substantial win from Hillary Clinton and a surprising win from Donald Trump. Donald Trump had barely any contributions even up to July 2016, when the Primary elections ended. A similar thing seems to have occured during the General election. The 2 Presidential candidates had a close race in Virginia, but the contribution numbers would make me expect a landslide win by Hillary Clinton.
+
+# Bivariate Analysis
+
+In this part of the analysis I kept most of my attention on the monetary amounts that were contributed during this election. We can see that most of the earlier contributions might be coming from people that were closer personally to the candidate. I think that because the early donations had a fairly large mean. As more people started to get interested in the campaign, their smaller donations quickly brought down the averages. 
+
+When looking at contributions by city, I 
+
+
+# Multivariate Plots
+
+
+
+
+
+
+
 
 
 
