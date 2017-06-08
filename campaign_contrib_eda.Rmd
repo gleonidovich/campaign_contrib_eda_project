@@ -643,19 +643,47 @@ These plots paint an interesting picture of the election, at least in Virginia. 
 
 # Bivariate Analysis
 
-In this part of the analysis I kept most of my attention on the monetary amounts that were contributed during this election. We can see that most of the earlier contributions might be coming from people that were closer personally to the candidate. I think that because the early donations had a fairly large mean. As more people started to get interested in the campaign, their smaller donations quickly brought down the averages. 
+In this part of the analysis I kept most of my attention on the monetary amounts that were contributed during this election. We can see that most of the earlier contributions might be coming from people that were more informed about the candidates that would be running in this election. I think that because the early donations had a fairly large mean. As more people started to get interested in the campaign, their smaller donations quickly brought down the averages. 
 
-When looking at contributions by city, I 
+When looking at contributions by city, I didn't find it surprising that the most populated areas in Virginia would have the highest frequency of contributions. It was interesting to see some of the smaller towns have high numbers. McClean has a population of about 48 thousand people (in 2010); 5.8 thousand contributions came from this area and equaled to $2.36 million. That impressive when we consider that Alexandria's population is 3 times as large with 4 times the contribution count but only 2 times the aggregate receipt amount.
 
+It is clear that the contribution rates and amounts are affected by some events that are outside of the dataset. However, there seems to be some separation between contribution trends and actual voting trends. As I stated earlier, I would not have expected Donald Trump to be in the race at all if I looked at his contribution numbers before the Primary Election. Nor would I expect a close race in Virginia between Clinton and Trump.
 
 # Multivariate Plots
 
+## Receipts by Location {.tabset}
 
+```{r}
+city.receipts.cand <- df %>%
+  select(contbr_city, cand_nm, cand_party, contb_receipt_amt) %>%
+  group_by(cand_nm) %>%
+  inner_join(top_30_city) %>%
+  filter(contb_receipt_amt >= 0)
+```
 
+### Top 30 Cities/All Candidates
+```{r}
+ggplot(data = city.receipts.cand, aes(x = contbr_city, y = contb_receipt_amt, fill = cand_nm)) +
+  geom_bar(stat="identity") +
+  horiz_lab
+```
 
+### Top 30 Cities/Top 5 Candidates
+```{r}
+city.receipts.cand.t5 <- city.receipts.cand %>%
+  inner_join(top_5_cand)
+```
+```{r}
+ggplot(data = city.receipts.cand.t5, aes(x = contbr_city, y = contb_receipt_amt, fill = cand_nm)) +
+  geom_bar(stat="identity") +
+  horiz_lab
+```
 
-
-
-
+### Top 30 Cities/Political Party
+```{r}
+ggplot(data = city.receipts.cand, aes(x = contbr_city, y = contb_receipt_amt, fill = cand_party)) +
+  geom_bar(stat="identity") +
+  horiz_lab
+```
 
 
