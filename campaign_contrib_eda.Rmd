@@ -9,7 +9,11 @@ output:
 ========================================================
 
 ```{r global_options, include=FALSE}
-knitr::opts_chunk$set(echo=FALSE, message=FALSE, warning=FALSE, fig.width=10, fig.height=7)
+knitr::opts_chunk$set(echo=FALSE,
+                      message=FALSE,
+                      warning=FALSE,
+                      fig.width=10,
+                      fig.height=7)
 ```
 
 ```{r packages}
@@ -37,7 +41,7 @@ library(zoo)
 
 ```{r}
 # Load the data set
-df <- read.csv("virginia_contributions_mod.csv", header = TRUE, sep = ",")
+df <- read.csv("virginia_contributions_mod.csv", header=TRUE, sep=",")
 ```
 
 Presidential Map Contributor Dataset from the Federal Election Commission is a dataset of all individual campaign contributions, refunds to individuals, and transfers from authorized committees. This report will explore a subset of this dataset for contributions from Virginia during the 2016 election cycle. 
@@ -69,8 +73,12 @@ df <- subset(df, select = -c(cand_id, cmte_id, file_num, contbr_st))
 df$contbr_zip <- factor(df$contbr_zip)
 df$contbr_zip_p4 <- df$contbr_zip
 
-df$contbr_zip <- sapply(df$contbr_zip, FUN = as.character)
-df$contbr_zip <- sapply(df$contbr_zip, FUN = function(x) substr(x, start=1, stop=5))
+df$contbr_zip <- sapply(df$contbr_zip,
+                        FUN = as.character)
+
+df$contbr_zip <- sapply(df$contbr_zip,
+                        FUN = function(x) substr(x, start=1, stop=5))
+
 df$contbr_zip <- factor(df$contbr_zip)
 
 df$contb_receipt_dt <- as.Date(df$contb_receipt_dt, "%d-%b-%y")
@@ -102,15 +110,15 @@ From 2014 to 2015 there were few contributions to the national campaign with man
 ### Monthly Timeline
 ```{r}
 month.count <- df %>%
-  mutate(contb_receipt_dt = as.Date(as.yearmon(contb_receipt_dt), frac = 1)) %>%
+  mutate(contb_receipt_dt = as.Date(as.yearmon(contb_receipt_dt), frac=1)) %>%
   count(contb_receipt_dt)
 ```
 ```{r}
-horiz_lab <- theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))
+horiz_lab <- theme(axis.text.x = element_text(angle=90, vjust=0.5, hjust=1))
 ```
 ```{r}
 ggplot(data = month.count, aes(x = contb_receipt_dt, y = n)) +
-  geom_bar(stat = "identity") +
+  geom_bar(stat="identity") +
   horiz_lab
 ```
 
@@ -137,31 +145,34 @@ cand.count
 
 ```{r}
 ggplot(data = cand.count, aes(x = reorder(cand_nm, -n), y = n)) +
-  geom_bar(stat = "identity") +
+  geom_bar(stat="identity") +
   horiz_lab
 ```
 
 ### Less than 15000 contributions
 
 ```{r}
-ggplot(data = cand.count[cand.count$n < 15000,], aes(x = reorder(cand_nm, -n), y = n)) +
-  geom_bar(stat = "identity") +
+ggplot(data = cand.count[cand.count$n < 15000,],
+       aes(x = reorder(cand_nm, -n), y = n)) +
+  geom_bar(stat="identity") +
   horiz_lab
 ```
 
 ### Less than 5000 contributions
 
 ```{r}
-ggplot(data = cand.count[cand.count$n < 5000,], aes(x = reorder(cand_nm, -n), y = n)) +
-  geom_bar(stat = "identity") +
+ggplot(data = cand.count[cand.count$n < 5000,],
+       aes(x = reorder(cand_nm, -n), y = n)) +
+  geom_bar(stat="identity") +
   horiz_lab
 ```
 
 ### Less than 500 contributions
 
 ```{r}
-ggplot(data = cand.count[cand.count$n < 500,], aes(x = reorder(cand_nm, -n), y = n)) +
-  geom_bar(stat = "identity") +
+ggplot(data = cand.count[cand.count$n < 500,],
+       aes(x = reorder(cand_nm, -n), y = n)) +
+  geom_bar(stat="identity") +
   horiz_lab
 ```
 
@@ -181,7 +192,7 @@ We can see that most of the candidates got very few contributions compared to Cl
 ### Cities (Top 20 Count)
 
 ```{r}
-# with help from https://www.r-bloggers.com/data-frame-columns-as-arguments-to-dplyr-functions/
+# help from https://www.r-bloggers.com/data-frame-columns-as-arguments-to-dplyr-functions/
 
 df$contbr_city = sapply(df$contbr_city, FUN = as.character)
 
@@ -195,8 +206,9 @@ reduce_count <- function(x, y) {
 city.count <- reduce_count(df, "contbr_city")
 ```
 ```{r}
-ggplot(data = top_n(city.count, 20, n), aes(x = reorder(contbr_city, -n), y = n)) +
-   geom_bar(stat = "identity") +
+ggplot(data = top_n(city.count, 20, n),
+       aes(x = reorder(contbr_city, -n), y = n)) +
+   geom_bar(stat="identity") +
    horiz_lab
 ```
 
@@ -218,9 +230,10 @@ There are 265 rows that had a count of 1. Many of these are misspelled names or 
 zip.count <- reduce_count(df, "contbr_zip")
 ```
 ```{r}
-ggplot(data = top_n(zip.count, 40, n), aes(x = reorder(contbr_zip, n), y = n)) +
+ggplot(data = top_n(zip.count, 40, n),
+       aes(x = reorder(contbr_zip, n), y = n)) +
   geom_bar(stat="identity") +
-  coord_flip(expand = TRUE)
+  coord_flip(expand=TRUE)
 ```
 
 The amount of contributions per zip code looks close to the cities with a few more spikes. Some cities contain several zip codes so much of the spread is just subdivision of the city amounts.
@@ -234,7 +247,7 @@ ggplot(data = zip.count, aes(x = n)) +
   labs(y = "Number of Zipcodes", x = "Number of Contributions")
 ```
 
-Scaled by a square root, the histogram shows that most of the zip codes had less than 500 contributions.
+I scaled the plot by a square root. The histogram shows that most of the zipcodes that were reported in the dateset had less than 500 contributions. Meaning that most of the contributions came from a few zipcodes (or geographic areas).
 
 ##
 
@@ -243,17 +256,24 @@ Scaled by a square root, the histogram shows that most of the zip codes had less
 ### Contributor Occupation
 ```{r}
 # many of these changes felt necessary only after getting futher into the analysis
-df$contbr_occupation <- sapply(df$contbr_occupation, FUN = as.character)
-df$contbr_occupation <- gsub("^INFORMATION REQUESTED PER BEST EFFORTS$", "INFORMATION REQUESTED", df$contbr_occupation)
-df$contbr_occupation <- gsub("^LAWYER$", "ATTORNEY", df$contbr_occupation)
+df$contbr_occupation <- sapply(df$contbr_occupation,
+                               FUN = as.character)
+
+df$contbr_occupation <- gsub("^INFORMATION REQUESTED PER BEST EFFORTS$",
+                             "INFORMATION REQUESTED",
+                             df$contbr_occupation)
+
+df$contbr_occupation <- gsub("^LAWYER$", "ATTORNEY",
+                             df$contbr_occupation)
 
 occupation.count <- reduce_count(df, "contbr_occupation")
 ```
 ```{r}
-ggplot(data = top_n(occupation.count, 20, n), aes(x = reorder(contbr_occupation, n), y = n)) +
-  geom_bar(stat = "identity") +
+ggplot(data = top_n(occupation.count, 20, n),
+       aes(x = reorder(contbr_occupation, n), y = n)) +
+  geom_bar(stat="identity") +
   coord_flip() +
-  theme(axis.text.y = element_text(size = 8))
+  theme(axis.text.y = element_text(size=8))
 ```
 
 The majority of the top 20 contributors were retired. It's interesting that the next highest group said they were unemployed. It will be interesting to see how much each occupation group actually contributed. "Information requested" and "Information requested per best efforts" are best effort designations showing that the committee tried to get additional information from a contributor. 
@@ -261,20 +281,33 @@ The majority of the top 20 contributors were retired. It's interesting that the 
 ### Contributor Employer
 ```{r}
 # many of these changes felt necessary only after getting further into the analysis
-df$contbr_employer <- sapply(df$contbr_employer, FUN = as.character)
-df$contbr_employer <- gsub("^INFORMATION REQUESTED PER BEST EFFORTS$", "INFORMATION REQUESTED", df$contbr_employer)
-df$contbr_employer <- gsub("^SELF$", "SELF-EMPLOYED", df$contbr_employer)
-df$contbr_employer <- gsub("^SELF EMPLOYED$", "SELF-EMPLOYED", df$contbr_employer)
-df$contbr_employer <- gsub("^DOD$", "U.S. DEPARTMENT OF DEFENSE", df$contbr_employer)
-df$contbr_employer <- gsub("^US NAVY$", "U.S. NAVY", df$contbr_employer)
+df$contbr_employer <- sapply(df$contbr_employer,
+                             FUN = as.character)
+
+df$contbr_employer <- gsub("^INFORMATION REQUESTED PER BEST EFFORTS$",
+                           "INFORMATION REQUESTED",
+                           df$contbr_employer)
+
+df$contbr_employer <- gsub("^SELF$", "SELF-EMPLOYED",
+                           df$contbr_employer)
+
+df$contbr_employer <- gsub("^SELF EMPLOYED$", "SELF-EMPLOYED",
+                           df$contbr_employer)
+
+df$contbr_employer <- gsub("^DOD$", "U.S. DEPARTMENT OF DEFENSE",
+                           df$contbr_employer)
+
+df$contbr_employer <- gsub("^US NAVY$", "U.S. NAVY",
+                           df$contbr_employer)
 
 employer.count <- reduce_count(df, "contbr_employer")
 ```
 ```{r}
-ggplot(data = top_n(employer.count, 20, n), aes(x = reorder(contbr_employer, n), y = n)) +
-  geom_bar(stat = "identity") +
+ggplot(data = top_n(employer.count, 20, n),
+       aes(x = reorder(contbr_employer, n), y = n)) +
+  geom_bar(stat="identity") +
   coord_flip() +
-  theme(axis.text.y = element_text(size = 8))
+  theme(axis.text.y = element_text(size=8))
 ```
 
 Many of the contributors chose to not give their employer name. Again, many people are retired or have no employer. Interestingly many people report self-employment.
@@ -287,7 +320,7 @@ Many of the contributors chose to not give their employer name. Again, many peop
 
 ```{r}
 receipt_amt_graph <- ggplot(data = df, aes(x = contb_receipt_amt)) +
-  geom_histogram(binwidth = 100)
+  geom_histogram(binwidth=100)
 ```
 ```{r}
 receipt_amt_graph
@@ -331,9 +364,9 @@ For the city feature, I will assume that the city names with counts of up to 10 
 
 ```{r}
 city.count.count %>%
-  # Learned about the way to avoid information loss on conversion from factor to numeric at the link below.
+  # Learned about the way to avoid information loss on conversion from factor to
+  # numeric at the link below.
   # http://stackoverflow.com/questions/3418128/how-to-convert-a-factor-to-an-integer-numeric-without-a-loss-of-information
-  
   mutate(n_product = as.numeric(levels(nf))[nf] * n) %>%
   summarise(sum(head(n_product, 10)))
 ```
@@ -349,7 +382,7 @@ I want to see which variables might affect 1) the candidate or party that is con
 
 ```{r}
 date.receipts.summary <- df %>%
-  mutate(contb_receipt_dt = as.Date(as.yearmon(contb_receipt_dt), frac = 1)) %>%
+  mutate(contb_receipt_dt = as.Date(as.yearmon(contb_receipt_dt), frac=1)) %>%
   group_by(contb_receipt_dt) %>%
   summarise(mean_receipt = mean(contb_receipt_amt),
             median_receipt = median(contb_receipt_amt),
@@ -359,10 +392,10 @@ date.receipts.summary <- df %>%
 ### Mean/Median Receipts
 ```{r}
 ggplot(data = date.receipts.summary, aes(x = contb_receipt_dt)) +
-  geom_bar(aes(y = mean_receipt, fill = "Mean"), stat = "identity") +
-  geom_bar(aes(y = median_receipt, fill = "Median"), stat = "identity") +
+  geom_bar(aes(y = mean_receipt, fill = "Mean"), stat="identity") +
+  geom_bar(aes(y = median_receipt, fill = "Median"), stat="identity") +
   horiz_lab +
-  labs(y = "Receipt Amount", x = "Date", fill = "Stat")
+  labs(y="Receipt Amount", x="Date", fill="Stat")
 ```
 
 There mean and median contribution receipt amounts throughout the election are quite interesting. They are almost the opposite of the frequency of contributions in the same time period. Earlier in the election there were fewer contributions per month, so the means are much more heavily affected by any large contribution. We can also see that excess or late contributions were being returned after the election ended, so the December 2017 mean is actually negative.
@@ -370,9 +403,9 @@ There mean and median contribution receipt amounts throughout the election are q
 ### Aggregate Receipts
 ```{r}
 ggplot(data = date.receipts.summary, aes(x = contb_receipt_dt)) +
-  geom_bar(aes(y = agg_receipt), stat = "identity") +
+  geom_bar(aes(y = agg_receipt), stat="identity") +
   horiz_lab +
-  labs(y = "Receipt Amount", x = "Date")
+  labs(y="Receipt Amount", x="Date")
 ```
 
 The aggregate receipts per month follow much closer to the contribution counts per month. We can see again that many people contributed around the party primary elections and the general election.
@@ -393,7 +426,9 @@ cand.receipts.summary <- df %>%
 
 # merging help from https://stackoverflow.com/questions/8091303/simultaneously-merge-multiple-data-frames-in-a-list
 
-cand.receipts.summary <- Reduce(function(df1, df2) left_join(df1, df2, by="cand_nm"), list(cand.receipts.summary, cand.count))
+cand.receipts.summary <-
+            Reduce(function(df1, df2) left_join(df1, df2, by="cand_nm"),
+                   list(cand.receipts.summary, cand.count))
 ```
 ```{r}
 DT::datatable(cand.receipts.summary)
@@ -401,9 +436,10 @@ DT::datatable(cand.receipts.summary)
 
 ### Mean/Median Receipts
 ```{r}
-ggplot(data = cand.receipts.summary, aes(x = reorder(cand_nm, -mean_receipt))) +
-  geom_bar(aes(y = mean_receipt, fill = "Mean"), stat = "identity") +
-  geom_bar(aes(y = median_receipt, fill = "Median"), stat = "identity") +
+ggplot(data = cand.receipts.summary,
+       aes(x = reorder(cand_nm, -mean_receipt))) +
+  geom_bar(aes(y = mean_receipt, fill = "Mean"), stat="identity") +
+  geom_bar(aes(y = median_receipt, fill = "Median"), stat="identity") +
   horiz_lab +
   labs(y = "Receipt Amount", x = "Candidate", fill = "Stat")
 ```
@@ -413,8 +449,8 @@ For all candidates except Rick Perry, the mean contribution receipt is larger th
 ### Max/Min Receipt
 ```{r}
 ggplot(data = cand.receipts.summary, aes(x = reorder(cand_nm, max_receipt))) +
-  geom_bar(aes(y = max_receipt, fill = "Max"), stat = "identity") +
-  geom_bar(aes(y = min_receipt, fill = "Min"), stat = "identity") +
+  geom_bar(aes(y = max_receipt, fill = "Max"), stat="identity") +
+  geom_bar(aes(y = min_receipt, fill = "Min"), stat="identity") +
   coord_flip() +
   labs(y = "Receipt Amount", x = "Candidate", fill = "Stat")
 ```
@@ -424,7 +460,7 @@ Ted Cruz and Donald Trump had the largest value receipt with the next largest be
 ### Aggregate Receipts
 ```{r}
 ggplot(data = cand.receipts.summary, aes(x = reorder(cand_nm, -agg_receipt))) +
-  geom_bar(aes(y = agg_receipt), stat = "identity") +
+  geom_bar(aes(y = agg_receipt), stat="identity") +
   horiz_lab +
   labs(y = "Receipt Amount", x = "Candidate")
 ```
@@ -477,8 +513,8 @@ DT::datatable(city.receipts.summary)
 ### Mean/Median Receipt
 ```{r}
 ggplot(data = city.receipts.summary, aes(x = reorder(contbr_city, -mean_receipt))) +
-  geom_bar(aes(y = mean_receipt, fill = "Mean"), stat = "identity") +
-  geom_bar(aes(y = median_receipt, fill = "Median"), stat = "identity") +
+  geom_bar(aes(y = mean_receipt, fill = "Mean"), stat="identity") +
+  geom_bar(aes(y = median_receipt, fill = "Median"), stat="identity") +
   horiz_lab +
   labs(y = "Receipt Amount", x = "Candidate", fill = "Stat")
 ```
@@ -488,8 +524,8 @@ McLean has a significantly higher mean receipt than the rest of the top 30 contr
 ### Max/Min Receipt
 ```{r}
 ggplot(data = city.receipts.summary, aes(x = reorder(contbr_city, max_receipt))) +
-  geom_bar(aes(y = max_receipt, fill = "Max"), stat = "identity") +
-  geom_bar(aes(y = min_receipt, fill = "Min"), stat = "identity") +
+  geom_bar(aes(y = max_receipt, fill = "Max"), stat="identity") +
+  geom_bar(aes(y = min_receipt, fill = "Min"), stat="identity") +
   coord_flip() +
   labs(y = "Receipt Amount", x = "City", fill = "Stat")
 ```
@@ -499,7 +535,7 @@ The biggest contribution came from a person in Alexandria, and the rest of the c
 ### Aggregate Receipt
 ```{r city.agg}
 ggplot(data = city.receipts.summary, aes(x = reorder(contbr_city, -agg_receipt))) +
-  geom_bar(aes(y = agg_receipt), stat = "identity") +
+  geom_bar(aes(y = agg_receipt), stat="identity") +
   horiz_lab +
   labs(y = "Receipt Amount", x = "City")
 ```
@@ -516,7 +552,8 @@ Generally, the population centers of Virginia are represented on the list of top
 
 ### Summary Table
 ```{r}
-top_30_occupation <- sapply(top_n(occupation.count, 30, n)["contbr_occupation"], FUN = as.character)
+top_30_occupation <- sapply(top_n(occupation.count, 30, n)["contbr_occupation"],
+                            FUN = as.character)
 
 occupation.receipts.summary <- df %>%
   group_by(contbr_occupation) %>%
@@ -527,7 +564,9 @@ occupation.receipts.summary <- df %>%
             agg_receipt = sum(contb_receipt_amt)) %>%
   filter(contbr_occupation %in% top_30_occupation)
 
-occupation.receipts.summary <- Reduce(function(df1, df2) left_join(df1, df2, by="contbr_occupation"), list(occupation.receipts.summary, occupation.count))
+occupation.receipts.summary <- 
+  Reduce(function(df1, df2) left_join(df1, df2, by="contbr_occupation"),
+         list(occupation.receipts.summary, occupation.count))
 ```
 ```{r}
 DT::datatable(occupation.receipts.summary)
@@ -535,9 +574,10 @@ DT::datatable(occupation.receipts.summary)
 
 ### Mean/Median Receipt
 ```{r}
-ggplot(data = occupation.receipts.summary, aes(x = reorder(contbr_occupation, mean_receipt))) +
-  geom_bar(aes(y = mean_receipt, fill = "Mean"), stat = "identity") +
-  geom_bar(aes(y = median_receipt, fill = "Median"), stat = "identity") +
+ggplot(data = occupation.receipts.summary,
+       aes(x = reorder(contbr_occupation, mean_receipt))) +
+  geom_bar(aes(y = mean_receipt, fill = "Mean"), stat="identity") +
+  geom_bar(aes(y = median_receipt, fill = "Median"), stat="identity") +
   coord_flip() +
   labs(y = "Receipt Amount", x = "Occupation", fill = "Stat")
 ```
@@ -548,9 +588,10 @@ The blank rows have a negative mean and median receipt amount. The likely reason
 
 ### Min/Max Receipt
 ```{r}
-ggplot(data = occupation.receipts.summary, aes(x = reorder(contbr_occupation, max_receipt))) +
-  geom_bar(aes(y = max_receipt, fill = "Max"), stat = "identity") +
-  geom_bar(aes(y = min_receipt, fill = "Min"), stat = "identity") +
+ggplot(data = occupation.receipts.summary,
+       aes(x = reorder(contbr_occupation, max_receipt))) +
+  geom_bar(aes(y = max_receipt, fill = "Max"), stat="identity") +
+  geom_bar(aes(y = min_receipt, fill = "Min"), stat="identity") +
   coord_flip() +
   labs(y = "Receipt Amount", x = "Occupation", fill = "Stat")
 ```
@@ -562,7 +603,7 @@ Seeing the maximum receipt by the blank group makes me question my previous assu
 ### Aggregate Receipt
 ```{r}
 ggplot(data = occupation.receipts.summary, aes(x = reorder(contbr_occupation, -agg_receipt))) +
-  geom_bar(aes(y = agg_receipt), stat = "identity") +
+  geom_bar(aes(y = agg_receipt), stat="identity") +
   horiz_lab +
   labs(y = "Receipt Amount", x = "Occupation")
 ```
@@ -579,7 +620,8 @@ The contribution receipts by occupation had some interesting results. We saw fro
 
 ### Summary Table
 ```{r}
-top_30_employer <- sapply(top_n(employer.count, 30, n)["contbr_employer"], FUN = as.character)
+top_30_employer <- sapply(top_n(employer.count, 30, n)["contbr_employer"],
+                          FUN = as.character)
 
 employer.receipts.summary <- df %>%
   group_by(contbr_employer) %>%
@@ -590,7 +632,9 @@ employer.receipts.summary <- df %>%
             agg_receipt = sum(contb_receipt_amt)) %>%
   filter(contbr_employer %in% top_30_employer)
 
-employer.receipts.summary <- Reduce(function(df1, df2) left_join(df1, df2, by="contbr_employer"), list(employer.receipts.summary, employer.count))
+employer.receipts.summary <- 
+  Reduce(function(df1, df2) left_join(df1, df2, by="contbr_employer"),
+         list(employer.receipts.summary, employer.count))
 ```
 ```{r}
 DT::datatable(employer.receipts.summary)
@@ -598,9 +642,10 @@ DT::datatable(employer.receipts.summary)
 
 ### Mean/Median Receipt
 ```{r}
-ggplot(data = employer.receipts.summary, aes(x = reorder(contbr_employer, mean_receipt))) +
-  geom_bar(aes(y = mean_receipt, fill = "Mean"), stat = "identity") +
-  geom_bar(aes(y = median_receipt, fill = "Median"), stat = "identity") +
+ggplot(data = employer.receipts.summary,
+       aes(x = reorder(contbr_employer, mean_receipt))) +
+  geom_bar(aes(y = mean_receipt, fill = "Mean"), stat="identity") +
+  geom_bar(aes(y = median_receipt, fill = "Median"), stat="identity") +
   coord_flip() +
   labs(y = "Receipt Amount", x = "Employer", fill = "Stat")
 ```
@@ -609,9 +654,10 @@ The mean receipt of homemakers in the occupation column is slightly different th
 
 ### Min/Max Receipt
 ```{r}
-ggplot(data = employer.receipts.summary, aes(x = reorder(contbr_employer, max_receipt))) +
-  geom_bar(aes(y = max_receipt, fill = "Max"), stat = "identity") +
-  geom_bar(aes(y = min_receipt, fill = "Min"), stat = "identity") +
+ggplot(data = employer.receipts.summary,
+       aes(x = reorder(contbr_employer, max_receipt))) +
+  geom_bar(aes(y = max_receipt, fill = "Max"), stat="identity") +
+  geom_bar(aes(y = min_receipt, fill = "Min"), stat="identity") +
   coord_flip() +
   labs(y = "Receipt Amount", x = "Employer", fill = "Stat")
 ```
@@ -620,8 +666,9 @@ The maximum contribution is even between most of the employers. The self-employe
 
 ### Aggregate Receipt
 ```{r}
-ggplot(data = employer.receipts.summary, aes(x = reorder(contbr_employer, -agg_receipt))) +
-  geom_bar(aes(y = agg_receipt), stat = "identity") +
+ggplot(data = employer.receipts.summary,
+       aes(x = reorder(contbr_employer, -agg_receipt))) +
+  geom_bar(aes(y = agg_receipt), stat="identity") +
   horiz_lab +
   labs(y = "Receipt Amount", x = "Employer")
 ```
@@ -645,7 +692,8 @@ cand.date.count <- df %>%
   count(cand_nm)
 ```
 ```{r}
-ggplot(data = cand.date.count, aes(x = contb_receipt_dt, y = n, fill = cand_nm)) +
+ggplot(data = cand.date.count,
+       aes(x = contb_receipt_dt, y = n, fill = cand_nm)) +
   geom_bar(stat = "identity")
 ```
 
@@ -654,7 +702,8 @@ ggplot(data = cand.date.count, aes(x = contb_receipt_dt, y = n, fill = cand_nm))
 top_5_cand <- top_n(cand.count, 5, n)["cand_nm"]
 ```
 ```{r}
-ggplot(data = cand.date.count %>% inner_join(top_5_cand), aes(x = contb_receipt_dt, y = n)) +
+ggplot(data = cand.date.count %>% inner_join(top_5_cand),
+       aes(x = contb_receipt_dt, y = n)) +
   geom_bar(stat = "identity") +
   facet_wrap(~cand_nm) +
   horiz_lab
@@ -695,7 +744,8 @@ As would be expected, Hillary Clinton's contribution receipt amount from each ci
 
 ### Top 30 Cities/All Candidates - HRC
 ```{r}
-ggplot(data = city.receipts.cand %>% filter(!cand_nm %in% c("Clinton, Hillary Rodham")), 
+ggplot(data = city.receipts.cand %>%
+         filter(!cand_nm %in% c("Clinton, Hillary Rodham")), 
        aes(x = contbr_city, y = contb_receipt_amt, fill = cand_nm)) +
   geom_bar(stat="identity") +
   horiz_lab
@@ -705,7 +755,8 @@ Looking at the chart with HRC helps to see that Jeb Bush actually received a rel
 
 ### Top 30 Cities/Political Party
 ```{r}
-ggplot(data = city.receipts.cand %>% filter(cand_party %in% c("REPUBLICAN", "DEMOCRATIC")),
+ggplot(data = city.receipts.cand %>%
+         filter(cand_party %in% c("REPUBLICAN", "DEMOCRATIC")),
        aes(x = contbr_city, y = contb_receipt_amt, fill = cand_party)) +
   geom_bar(stat="identity") +
   horiz_lab
@@ -739,7 +790,8 @@ date.receipts.cand <- df %>%
 ```
 
 ```{r}
-ggplot(data = date.receipts.cand, aes(x = contb_receipt_dt, y = contb_receipt_amt, fill = cand_nm)) +
+ggplot(data = date.receipts.cand,
+       aes(x = contb_receipt_dt, y = contb_receipt_amt, fill = cand_nm)) +
   geom_bar(stat="identity") +
   horiz_lab
 ```
@@ -753,7 +805,8 @@ date.receipts.cand.t5 <- date.receipts.cand %>%
 ```
 
 ```{r}
-ggplot(data = date.receipts.cand.t5, aes(x = contb_receipt_dt, y = contb_receipt_amt)) +
+ggplot(data = date.receipts.cand.t5,
+       aes(x = contb_receipt_dt, y = contb_receipt_amt)) +
   geom_bar(stat="identity") +
   facet_wrap(~ cand_nm) +
   horiz_lab
@@ -763,7 +816,8 @@ It's interesting to clearly see the switch in funding after the Primary Election
 
 ### Date/Polical Parties
 ```{r}
-ggplot(data = date.receipts.cand, aes(x = contb_receipt_dt, y = contb_receipt_amt, fill = cand_party)) +
+ggplot(data = date.receipts.cand,
+       aes(x = contb_receipt_dt, y = contb_receipt_amt, fill = cand_party)) +
   geom_bar(stat="identity") +
   horiz_lab
 ```
@@ -774,14 +828,16 @@ The timeline for the contributions to each party have roughly two peaks. The fir
 
 #### Democrats
 ```{r}
-ggplot(data = filter(date.receipts.cand, cand_party == "DEMOCRATIC"), aes(x = contb_receipt_dt, y = contb_receipt_amt, fill = cand_nm)) +
+ggplot(data = filter(date.receipts.cand, cand_party == "DEMOCRATIC"),
+       aes(x = contb_receipt_dt, y = contb_receipt_amt, fill = cand_nm)) +
   geom_bar(stat="identity") +
   horiz_lab
 ```
 
 #### Republicans
 ```{r}
-ggplot(data = filter(date.receipts.cand, cand_party == "REPUBLICAN"), aes(x = contb_receipt_dt, y = contb_receipt_amt, fill = cand_nm)) +
+ggplot(data = filter(date.receipts.cand, cand_party == "REPUBLICAN"),
+       aes(x = contb_receipt_dt, y = contb_receipt_amt, fill = cand_nm)) +
   geom_bar(stat="identity") +
   horiz_lab
 ```
@@ -815,10 +871,13 @@ This plot shows the contribution frequency by date for the election period. The 
 
 ```{r}
 ggplot(data = date.receipts.summary, aes(x = contb_receipt_dt)) +
-  geom_bar(aes(y = mean_receipt, fill = "Mean"), stat = "identity") +
-  geom_bar(aes(y = median_receipt, fill = "Median"), stat = "identity") +
+  geom_bar(aes(y = mean_receipt, fill = "Mean"), stat="identity") +
+  geom_bar(aes(y = median_receipt, fill = "Median"), stat="identity") +
   horiz_lab +
-  labs(title = "Mean/Median Receipts per Month", y = "Receipt Amount", x = "Date", fill = "Stat")
+  labs(title = "Mean/Median Receipts per Month",
+       y = "Receipt Amount",
+       x = "Date",
+       fill = "Stat")
 ```
 
 ## Description Two
@@ -828,17 +887,23 @@ This plot of the mean and median receipts per month shows a difference between t
 ## Plot Three
 
 ```{r}
-ggplot(data = filter(date.receipts.cand, cand_party == "DEMOCRATIC"), aes(x = contb_receipt_dt, y = contb_receipt_amt, fill = cand_nm)) +
+ggplot(data = filter(date.receipts.cand, cand_party == "DEMOCRATIC"),
+       aes(x = contb_receipt_dt, y = contb_receipt_amt, fill = cand_nm)) +
   geom_bar(stat="identity") +
   horiz_lab +
-  labs(title = "Receipts per Month by Democratic Candidate", x = "Date", y = "Dollars")
+  labs(title = "Receipts per Month by Democratic Candidate",
+       x = "Date",
+       y = "Dollars")
 ```
 
 ```{r}
-ggplot(data = filter(date.receipts.cand, cand_party == "REPUBLICAN"), aes(x = contb_receipt_dt, y = contb_receipt_amt, fill = cand_nm)) +
+ggplot(data = filter(date.receipts.cand, cand_party == "REPUBLICAN"),
+       aes(x = contb_receipt_dt, y = contb_receipt_amt, fill = cand_nm)) +
   geom_bar(stat="identity") +
   horiz_lab +
-  labs(title = "Receipts per Month by Republican Candidate", x = "Date", y = "Dollars")
+  labs(title = "Receipts per Month by Republican Candidate",
+       x = "Date",
+       y = "Dollars")
 ```
 
 ## Description Three
